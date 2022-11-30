@@ -1,6 +1,7 @@
 library(shiny)
 library(tidyverse)
-library(shinydashboard)
+library(tidyr)
+library(maps)
 
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
@@ -8,17 +9,22 @@ library(shinydashboard)
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv") %>% 
 #   select(-X)
 
+#Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
   distinct(Country) %>% 
   arrange(Country) %>% 
   pull(Country)
 
+#Getting a list of cities and their countries so the city selectinput can automatically update based off the country the user picks
 city_list <- env_data %>% 
   select(Country, City) %>% 
   distinct(City, .keep_all = TRUE) %>% 
   arrange(Country, City)
 
+#Defining month_year used later in the UI
 month_year <- c("Months", "Years")
+
+#Defining pdf_png used later in the UI
 pdf_png <- c(".pdf", ".png")
 
 ###############################################################UI###############################################################
@@ -69,7 +75,7 @@ ui <- fluidPage(
                      choices = NULL
                    )),
                  conditionalPanel(
-                   condition = "output.analysis_type != '1 - Continuous'",    #Asks the user if they want the city temp to be displayed over months or years
+                   condition = "input.tab1 == 'By City'",    #Asks the user if they want the city temp to be displayed over months or years
                    radioButtons(
                      inputId = "month_year",
                      label = "Display in Months or Years?",
@@ -91,28 +97,30 @@ ui <- fluidPage(
                    "month_slider"
                   )),
                 radioButtons(
-                  inputId = "download_type",
+                  inputId = "download_type",      #Allows the user to choose what type of download they want
                   label = "Type of Download?",
                   choices = pdf_png
                 ),
                 downloadButton(
-                  outputId = 'download_plot_1', 
+                  outputId = 'download_plot_1',     #Download button allows user to click button to download last loaded plot
                   label = 'Download Plot'
                 ),
     ),
     
     mainPanel(width = 9,
                 tabsetPanel(id = "tab1", type = "tabs",
-                            tabPanel("By Country", br(), plotOutput("country_plot", height = "600px")),
-                            tabPanel("By City", br(), plotOutput("city_plot", height = "600px"))),
+                            tabPanel("By Country", br(), plotOutput("country_plot", height = "600px")),  #Country plot tab
+                            tabPanel("By City", br(), plotOutput("city_plot", height = "600px"))),   #City plot tab
               
     ),
   ))
 
-###############################################################Server###############################################################
+
+
+
+
+
 server <- function(input, output, session) {
-  
-  
 ###############################################################Random Samples for Country Plots###############################################################
   #Selecting a city based off a country, for the city plot
   observeEvent(input$variable_country,
@@ -225,6 +233,19 @@ server <- function(input, output, session) {
     min_temp <- round(min(country_temp$avgtemp, na.rm = TRUE), 0) - 0.5
     
     
+
+    
+    #Getting the max and min temp of country selected stratified by cities, also changes based on year selected
+    country_temp <- env_data %>% 
+      filter(Country == input$variable_country & year >= min_year & year <= max_year) %>% 
+      group_by(year, City) %>% 
+      summarise(avgtemp = mean(AverageTemperature))
+    
+    max_temp_strat <- round(max(country_temp$avgtemp, na.rm = TRUE), 0) + 0.5
+    min_temp_strat <- round(min(country_temp$avgtemp, na.rm = TRUE), 0) - 0.5
+    
+    
+    
     #Actual country plots with ifelse statements
     if(input$city_color == 1 & input$lowess_line == 1) { #Stratify by cities and add lowess
       env_data %>% 
@@ -234,11 +255,11 @@ server <- function(input, output, session) {
         ggplot(aes(year, avgtemp, color = City)) +
         geom_line() +
         theme_bw() +
-        scale_y_continuous(limits = c(min_temp, max_temp), breaks = seq(min_temp, max_temp, by = 0.5)) +
+        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country, " Cities"), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
-              axis.title = element_text(size = 16, face = "bold"), legend.text = element_text(size = 16), legend.title = element_text(size = 16)) +
+              axis.title = element_text(size = 16, face = "bold"), legend.text = element_text(size = 16), legend.title = element_text(size = 16), axis.text = element_text(size = 14)) +
         geom_smooth(se = FALSE)
       
     
@@ -250,11 +271,11 @@ server <- function(input, output, session) {
         ggplot(aes(year, avgtemp, color = City)) +
         geom_line() +
         theme_bw() +
-        #scale_y_continuous(limits = c(6, 10), breaks = seq(6, 10, by = 0.5)) +
-        scale_x_continuous(limits = c(1900, 2012), breaks = seq(1900, 2012, by = 10)) +
+        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
+        scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country, " Cities"), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
-              axis.title = element_text(size = 16, face = "bold"), legend.text = element_text(size = 16), legend.title = element_text(size = 16))
+              axis.title = element_text(size = 16, face = "bold"), legend.text = element_text(size = 16), legend.title = element_text(size = 16), axis.text = element_text(size = 14))
       
 
     } else if(input$city_color == 0 & input$lowess_line == 1) { #No stratify by cities, add lowess
@@ -265,11 +286,11 @@ server <- function(input, output, session) {
         ggplot(aes(year, avgtemp)) +
         geom_line() +
         theme_bw() +
-        # scale_y_continuous(limits = c(6, 10), breaks = seq(6, 10, by = 0.5)) +
-        scale_x_continuous(limits = c(1900, 2012), breaks = seq(1900, 2012, by = 10)) +
+        scale_y_continuous(limits = c(min_temp, max_temp), breaks = seq(min_temp, max_temp, by = 0.5)) +
+        scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
-              axis.title = element_text(size = 16, face = "bold")) +
+              axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14)) +
         geom_smooth(se = FALSE)
       
     
@@ -355,6 +376,8 @@ server <- function(input, output, session) {
   
   
   ###############################################################Downloading Plots###############################################################
+  
+  #Used in downloadHandler filename
   download_type_1 <- reactive(
     if(input$download_type == ".pdf") {
       ".pdf"
@@ -364,6 +387,7 @@ server <- function(input, output, session) {
     }
   )
   
+  #Used in downloadHandler content
   download_type_2 <- reactive(
     if(input$download_type == ".pdf") {
       "pdf"
@@ -373,6 +397,7 @@ server <- function(input, output, session) {
     }
   )
   
+  #Putting downloadHandler together with download button
   output$download_plot_1 <- downloadHandler(
     filename = function() {
       paste("plot-", Sys.Date(), download_type_1(), sep = "")
@@ -384,5 +409,5 @@ server <- function(input, output, session) {
   
 }
 
-# Run the application 
+#Run the app
 shinyApp(ui = ui, server = server)
