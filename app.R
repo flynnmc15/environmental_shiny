@@ -9,7 +9,6 @@ library(maps)
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv") %>% 
 #   select(-X)
 
-#ABBY CHECKING TO SEE IF I CAN PUSH AND PULL.
 
 #Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
@@ -214,6 +213,7 @@ server <- function(input, output, session) {
     )
     
   })
+  
   
   
   ###############################################################Country Plots###############################################################
