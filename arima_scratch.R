@@ -2,20 +2,24 @@ install.packages("forecast")
 library(forecast)
 dat = env_data[which(env_data$Country=="United States"),]
 table(dat$City)
-waterbury = dat[which(dat$City=="Waterbury"),]
+waterbury = dat[dat$City=="Waterbury",]
+waterbury = selectByDate(
+  waterbury,
+  start = "1/1/2000",
+  end = "31/12/2012"
+)
 
 yonk = dat[which(dat$City=="Yonkers"),]
 
 
 fit = auto.arima(y = waterbury$AverageTemperature)
 
-myObject = forecast(fit, h = 15)
+forecastObj = forecast(fit, h = 15)
 
-tsDF = function(forecastObj, objTime){
-  original = forecastObj$x
-  fitted = forecastObj$fitted
-  pointForecasts = forecast$mean
-}
+library(ggplot2)
+p <- ggplot(aes(x=dt, y=AverageTemperature), data=waterbury)
+p <- p + geom_line()
+p + geom_forecast()
 
 
 #from a blog, will use as inspiration, plots later to come.
