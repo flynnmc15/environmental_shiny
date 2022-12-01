@@ -11,20 +11,10 @@ library(maps)
 
 
 #### IDEAS TO POSSIBLY IMPLEMENT 12/1/22
-# 1. there's a lot of data right now for the countries. Maybe we do an average over the months
-#    if a user inputs country. Although that may already have been done and I just missed it.
-# 2. It seems that there is no need to do a forecast with arima if we have the geom_forecast() function
+# 1. It seems that there is no need to do a forecast with arima if we have the geom_forecast() function
 #    in ggplot. I don't know how everyone else feels about that. We can of course implement
 #    the arima version with the last example of the geom_forecast documentation.
-# 3. I think we need to remove missing values but I am not sure.
 
-env_data = env_data %>% na.omit() 
-any(is.character(env_data$AverageTemperature))
-all(is.numeric(env_data$AverageTemperature))
-
-any(is.character(env_data$year))
-all(is.numeric(env_data$year))
-#there is some weird bug with the plotting mechanism
 
 #Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
@@ -39,8 +29,8 @@ city_list <- env_data %>%
   arrange(Country, City)
 
 #formatting column of months and years in env_data
-env_data$year <- as.numeric(format(as.Date(env_data$dt), "%Y"))
-env_data$month = as.numeric(format(as.Date(env_data$dt), "%m"))
+# env_data$year <- as.numeric(format(as.Date(env_data$dt), "%Y"))
+# env_data$month = as.numeric(format(as.Date(env_data$dt), "%m"))
 
 #Defining month_year used later in the UI
 month_year <- c("Months", "Years")
@@ -275,7 +265,7 @@ server <- function(input, output, session) {
         group_by(year, City) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp, color = City)) +
-        geom_line() +
+        geom_forecast() +
         theme_bw() +
         scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
@@ -385,7 +375,7 @@ server <- function(input, output, session) {
         group_by(year) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp)) +
-        geom_line() +
+        geom_forecast() +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         scale_y_continuous(limits = c(min_temp_year, max_temp_year), breaks = seq(min_temp_year, max_temp_year, by = 1)) +
         theme_bw() +
