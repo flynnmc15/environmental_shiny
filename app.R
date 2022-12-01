@@ -12,12 +12,19 @@ library(maps)
 
 #### IDEAS TO POSSIBLY IMPLEMENT 12/1/22
 # 1. there's a lot of data right now for the countries. Maybe we do an average over the months
-#    if a user inputs country.
+#    if a user inputs country. Although that may already have been done and I just missed it.
 # 2. It seems that there is no need to do a forecast with arima if we have the geom_forecast() function
 #    in ggplot. I don't know how everyone else feels about that. We can of course implement
 #    the arima version with the last example of the geom_forecast documentation.
 # 3. I think we need to remove missing values but I am not sure.
 
+env_data = env_data %>% na.omit() 
+any(is.character(env_data$AverageTemperature))
+all(is.numeric(env_data$AverageTemperature))
+
+any(is.character(env_data$year))
+all(is.numeric(env_data$year))
+#there is some weird bug with the plotting mechanism
 
 #Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
@@ -251,7 +258,7 @@ server <- function(input, output, session) {
 
     
     #Getting the max and min temp of country selected stratified by cities, also changes based on year selected
-    country_temp <- env_data %>% 
+    country_temp <- env_data %>%
       filter(Country == input$variable_country & year >= min_year & year <= max_year) %>% 
       group_by(year, City) %>% 
       summarise(avgtemp = mean(AverageTemperature))
