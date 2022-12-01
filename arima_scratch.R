@@ -9,6 +9,9 @@ waterbury = selectByDate(
   end = "31/12/2012"
 )
 
+env_data$Year <- format(as.Date(env_data$dt), "%Y")
+
+
 yonk = dat[which(dat$City=="Yonkers"),]
 
 
