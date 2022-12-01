@@ -265,7 +265,7 @@ server <- function(input, output, session) {
         group_by(year, City) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp, color = City)) +
-        geom_forecast() +
+        geom_forecast(forecast(cbind())) + #NEED TO FIX TO INCLUDE THE TIME SERIES PART!!
         theme_bw() +
         scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
