@@ -17,7 +17,7 @@ yonk = dat[which(dat$City=="Yonkers"),]
 
 fit = auto.arima(y = waterbury$AverageTemperature)
 
-forecastObj = forecast(fit, h = 15)
+forecastObj = forecast(auto.arima(y = waterbury$AverageTemperature), h = 15)
 
 library(ggplot2)
 p <- ggplot(aes(x=dt, y=AverageTemperature), data=waterbury)

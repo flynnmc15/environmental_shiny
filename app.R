@@ -1,13 +1,13 @@
 library(shiny)
 library(tidyverse)
 library(tidyr)
+library(forecast)
 library(maps)
 
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
-# env_data <- read.csv("GlobalLandTemperaturesByCity.csv") %>% 
-#   select(-X)
+env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% select(-X)
 
 
 #### IDEAS TO POSSIBLY IMPLEMENT 12/1/22
@@ -265,7 +265,8 @@ server <- function(input, output, session) {
         group_by(year, City) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp, color = City)) +
-        geom_forecast() +
+        geom_line()+
+        geom_forecast(forecast(AverageTemperature, h = 5)) + #how do I put in the average temperature???
         theme_bw() +
         scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
@@ -281,6 +282,7 @@ server <- function(input, output, session) {
         group_by(year, City) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp, color = City)) +
+        geom_line()+
         geom_forecast() +
         theme_bw() +
         scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
@@ -296,7 +298,8 @@ server <- function(input, output, session) {
         group_by(year) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp)) +
-        geom_forecast() +
+        geom_line()+
+        geom_forecast(h=10) +
         theme_bw() +
         scale_y_continuous(limits = c(min_temp, max_temp), breaks = seq(min_temp, max_temp, by = 0.5)) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
@@ -312,6 +315,7 @@ server <- function(input, output, session) {
         group_by(year) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp)) +
+        geom_line()+
         geom_forecast() +
         theme_bw() +
         scale_y_continuous(limits = c(min_temp, max_temp), breaks = seq(min_temp, max_temp, by = 0.5)) +
@@ -361,7 +365,8 @@ server <- function(input, output, session) {
     env_data %>% 
       filter(City == input$variable_city & year == input$select_year) %>% 
       ggplot(aes(month, AverageTemperature)) +
-      geom_forecast() +
+      geom_line()+
+      # autoplot() + geom_forecast(h = 5)+
       scale_x_continuous(limits = c(min_month, max_month), breaks = seq(min_month, max_month, by = 1)) +
       scale_y_continuous(limits = c(min_temp_month, max_temp_month), breaks = seq(min_temp_month, max_temp_month, by = 1)) +
       theme_bw() +
