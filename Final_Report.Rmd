@@ -1,0 +1,44 @@
+---
+title: "Final Report"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+From rubric: The report is clearly written and sufficiently introduces the dataset of choice, the question of interest, the approach taken, and the results.
+
+# Background
+
+Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing.
+
+# Data
+
+The data are collected from UC-Berkley’s climate lab, spanning 1750-2022. It is publicly available on Kaggle under "Climate Change: Earth Surface Temperature Data". Specifically, we are utilizing the Global Land Temperatures By City (GlobalLandTemperaturesByCity.csv) file. The variables of interest are Average Temperature, Latitude, Longitude, City, Country, and Date. In the 1980's, Average Temperature started being measured by a digital thermometer which may make recent measurements more accurate.
+
+### Data preview:
+
+```{r, include=FALSE}
+library(tidyverse)
+setwd("/home/gtiernon/biostat625/project")
+env_data <- read.csv("GlobalLandTemperaturesByCity.csv") %>% 
+  select(-X)
+```
+
+```{r}
+head(env_data)
+```
+
+# Research Aim
+
+Our goal is to communicate statistical analysis of global surface temperatures to policy makers or curious citizens via a user-friendly Shiny application. 
+
+# Analysis
+
+
+# Results
+
+Link to shiny app with maybe a description of trends we observed. 
+
+
