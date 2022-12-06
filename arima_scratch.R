@@ -66,11 +66,9 @@ funggcast<-function(dn,fcast){
 
 # needs to be changed from Afghanistan to 
 #if the user wants to forecast:
+
   df2 <- env_data %>%
-    filter(Country == "Afghanistan")%>%
-    group_by(year) %>% 
-    summarise(mean_temp=mean(AverageTemperature),
-              .groups = 'drop') %>% 
+    filter(Country == "Afghanistan" & year >= 2008)%>%
     as.data.frame() %>% na.omit()
   
   #get forecast
@@ -78,7 +76,7 @@ funggcast<-function(dn,fcast){
     filter(Country == "Afghanistan") %>% 
     select(AverageTemperature) %>% 
     auto.arima() %>%
-    forecast(h = 6*12)
+    forecast(h = 5*12 )
   #can be changed to allow person to forecast as
   # far into the future as they want
   
@@ -87,25 +85,29 @@ funggcast<-function(dn,fcast){
     select("Point Forecast", "Lo 95", "Hi 95") %>% na.omit()
   rownames(forecastDF) = NULL
   #need to get this to the point where it takes in the country
-  lastMeasuredDate = env_data %>%
-    filter(Country == "Afghanistan") %>% 
+  lastMeasuredDate = df2 %>%
     select(dayTime) %>% as.vector()
   rownames(lastMeasuredDate) = NULL
-  forecastDF$timePoint = seq(as.Date(max(lastMeasuredDate$dayTime)), 
+  forecastDF$dayTime = seq(as.Date(max(lastMeasuredDate$dayTime)), 
                              by = "month", length.out = nrow(forecastDF))
   names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "timePoint")
   forecastDF$year = as.numeric(format(forecastDF$timePoint,'%Y'))
   
-  foo = forecastDF %>% group_by(year) %>% 
-    summarise(mean_temp=mean(pointEst),
-              .groups = 'drop') %>% 
-    as.data.frame() %>% na.omit()
+df2$pointEst = df2$AverageTemperature
+
+ggp <- ggplot(NULL, aes(x, y)) +    # Draw ggplot2 plot based on two data frames
+  geom_point(data = data1, col = "red") +
+  geom_line(data = data2, col = "blue")
+ggp   
+
+ggplot(data = forecastDF, aes(x = timePoint, y = pointEst, ymin = lowerBound, ymax = upperBound))+
+  geom_line()+
+  geom_errorbar(color = "blue")
   
-  ggplot() +               
-    geom_line(data = df2, aes(x = year, y = mean_temp), 
-              color = "black")+
-    geom_line(data = foo, aes(x = year, y = mean_temp), 
-              color = "red")+
-    labs(x = "X-Data", y = "Y-Data")+
-    ggtitle("Combined Plot")
+  ggplot(data = NULL, aes(x = dayTime, y = pointEst)) +               
+    geom_point(data = df2, aes(x = dayTime, y = AverageTemperature), 
+              color = "black") #+
+  # geom_line(data = forecastDF, aes(x = as.Date(timePoint), y = pointEst), 
+  #           color = "red")
   
+  # some weird error here
