@@ -69,9 +69,11 @@ funggcast<-function(dn,fcast){
 
   df2 <- env_data %>%
     filter(Country == "Afghanistan" & year >= 2008)%>%
+  group_by(dayTime) %>% 
+  mutate(pointEst = mean(AverageTemperature)) %>% 
     as.data.frame() %>% na.omit()
   
-  #get forecast
+  # get forecast
   myForecast = env_data %>%
     filter(Country == "Afghanistan") %>% 
     select(AverageTemperature) %>% 
@@ -90,10 +92,8 @@ funggcast<-function(dn,fcast){
   rownames(lastMeasuredDate) = NULL
   forecastDF$dayTime = seq(as.Date(max(lastMeasuredDate$dayTime)), 
                              by = "month", length.out = nrow(forecastDF))
-  names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "timePoint")
-  forecastDF$year = as.numeric(format(forecastDF$timePoint,'%Y'))
-  
-df2$pointEst = df2$AverageTemperature
+  names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "dayTime")
+  forecastDF$year = as.numeric(format(forecastDF$dayTime,'%Y'))
 
 ggp <- ggplot(NULL, aes(x, y)) +    # Draw ggplot2 plot based on two data frames
   geom_point(data = data1, col = "red") +
@@ -105,9 +105,11 @@ ggplot(data = forecastDF, aes(x = timePoint, y = pointEst, ymin = lowerBound, ym
   geom_errorbar(color = "blue")
   
   ggplot(data = NULL, aes(x = dayTime, y = pointEst)) +               
-    geom_point(data = df2, aes(x = dayTime, y = AverageTemperature), 
-              color = "black") #+
-  # geom_line(data = forecastDF, aes(x = as.Date(timePoint), y = pointEst), 
-  #           color = "red")
+    geom_line(data = df2, aes(x = dayTime, y = pointEst), 
+              color = "black") +
+  geom_line(data = forecastDF, aes(x = dayTime, y = pointEst), 
+            color = "red")
   
-  # some weird error here
+  # some weird error here. the below link should fix that, just need some time to work with it.
+  
+  # https://stackoverflow.com/questions/48508907/r-time-trans-works-with-objects-of-class-posixct
