@@ -73,13 +73,16 @@ p + geom_forecast()
   df2$dayTime = as_date(df2$dayTime, tz = NULL)
   forecastDF$dayTime = as_date(forecastDF$dayTime, tz = NULL)
 
+  combinedDF = forecastDF %>% select(dayTime, pointEst) %>% 
+    bind_rows(df2)
 
-  ggplot() +
-    geom_line(data = df2,aes(x = dayTime, y = pointEst)) +
-    geom_line(data = forecastDF, 
-            aes(x = dayTime, y = pointEst))+
+  
+  ggplot(data = NULL, aes(x = dayTime, y = pointEst)) +
+    geom_line(data = df2) +
+    geom_line(data = forecastDF)+
+     #can add lowess in to the prediction model!!
     geom_errorbar(data = forecastDF, 
                   aes(x = dayTime, y = pointEst,ymin = lowerBound, ymax = upperBound), 
-                  color = "light blue") #+ # want to add in a mean trend.
-    geom_abline()
+                  color = "light blue") +
+      geom_smooth(data = combinedDF, se = FALSE)
   
