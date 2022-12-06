@@ -25,38 +25,6 @@ p <- p + geom_line()
 p + geom_forecast()
 
 
-#from a blog, will use as inspiration, plots later to come.
-funggcast<-function(dn,fcast){ 
-  require(zoo) #needed for the 'as.yearmon()' function
-  
-  en<-max(time(fcast$mean)) #extract the max date used in the forecast
-  
-  #Extract Source and Training Data
-  ds<-as.data.frame(window(dn,end=en))
-  names(ds)<-'observed'
-  ds$date<-as.Date(time(window(dn,end=en)))
-  
-  #Extract the Fitted Values (need to figure out how to grab confidence intervals)
-  dfit<-as.data.frame(fcast$fitted)
-  dfit$date<-as.Date(time(fcast$fitted))
-  names(dfit)[1]<-'fitted'
-  
-  ds<-merge(ds,dfit,all.x=T) #Merge fitted values with source and training data
-  
-  #Exract the Forecast values and confidence intervals
-  dfcastn<-as.data.frame(fcast)
-  dfcastn$date<-as.Date(as.yearmon(row.names(dfcastn)))
-  names(dfcastn)<-c('forecast','lo80','hi80','lo95','hi95','date')
-  
-  pd<-merge(ds,dfcastn,all.x=T) #final data.frame for use in ggplot
-  return(pd)
-  
-}
-
-
-
-
-
 
 
 
@@ -71,12 +39,19 @@ funggcast<-function(dn,fcast){
     filter(Country == "Afghanistan" & year >= 2008)%>%
   group_by(dayTime) %>% 
   mutate(pointEst = mean(AverageTemperature)) %>% 
+  select(dayTime, pointEst) %>% 
+  distinct(pointEst) %>% 
     as.data.frame() %>% na.omit()
   
   # get forecast
   myForecast = env_data %>%
     filter(Country == "Afghanistan") %>% 
-    select(AverageTemperature) %>% 
+    group_by(dayTime) %>% 
+    mutate(pointEst = mean(AverageTemperature)) %>% 
+    select(pointEst) %>% 
+    distinct(pointEst) %>% 
+    ungroup() %>% 
+    select(pointEst) %>% 
     auto.arima() %>%
     forecast(h = 5*12 )
   #can be changed to allow person to forecast as
@@ -90,26 +65,21 @@ funggcast<-function(dn,fcast){
   lastMeasuredDate = df2 %>%
     select(dayTime) %>% as.vector()
   rownames(lastMeasuredDate) = NULL
-  forecastDF$dayTime = seq(as.Date(max(lastMeasuredDate$dayTime)), 
-                             by = "month", length.out = nrow(forecastDF))
+  forecastDF$dayTime = ymd(seq(as.Date(max(lastMeasuredDate$dayTime)), 
+                             by = "month", length.out = nrow(forecastDF)))
   names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "dayTime")
   forecastDF$year = as.numeric(format(forecastDF$dayTime,'%Y'))
+  
+  df2$dayTime = as_date(df2$dayTime, tz = NULL)
+  forecastDF$dayTime = as_date(forecastDF$dayTime, tz = NULL)
 
-ggp <- ggplot(NULL, aes(x, y)) +    # Draw ggplot2 plot based on two data frames
-  geom_point(data = data1, col = "red") +
-  geom_line(data = data2, col = "blue")
-ggp   
 
-ggplot(data = forecastDF, aes(x = timePoint, y = pointEst, ymin = lowerBound, ymax = upperBound))+
-  geom_line()+
-  geom_errorbar(color = "blue")
+  ggplot() +
+    geom_line(data = df2,aes(x = dayTime, y = pointEst)) +
+    geom_line(data = forecastDF, 
+            aes(x = dayTime, y = pointEst))+
+    geom_errorbar(data = forecastDF, 
+                  aes(x = dayTime, y = pointEst,ymin = lowerBound, ymax = upperBound), 
+                  color = "light blue") #+ # want to add in a mean trend.
+    geom_abline()
   
-  ggplot(data = NULL, aes(x = dayTime, y = pointEst)) +               
-    geom_line(data = df2, aes(x = dayTime, y = pointEst), 
-              color = "black") +
-  geom_line(data = forecastDF, aes(x = dayTime, y = pointEst), 
-            color = "red")
-  
-  # some weird error here. the below link should fix that, just need some time to work with it.
-  
-  # https://stackoverflow.com/questions/48508907/r-time-trans-works-with-objects-of-class-posixct
