@@ -9,6 +9,7 @@ library(ggfortify)
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
+
 env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% 
   select(-X) %>% 
   na.omit()
@@ -277,7 +278,6 @@ server <- function(input, output, session) {
     #Getting the max and min temp of country selected stratified by cities, also changes based on year selected
     country_temp <- env_data %>% 
       filter(Country == input$variable_country & year >= min_year & year <= max_year & City %in% sample_sort()) %>% 
-    
       group_by(year, City) %>% 
       summarise(avgtemp = mean(AverageTemperature))
     
