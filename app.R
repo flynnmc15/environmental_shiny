@@ -320,50 +320,6 @@ server <- function(input, output, session) {
       
     
     } else { #No stratify by cities, no lowess
-      if(input$forecast_choice == 1){ #if the user wants to forecast:
-        df2 <- env_data %>%
-          filter(Country == "Afghanistan")%>%
-          group_by(year) %>% 
-          summarise(mean_temp=mean(AverageTemperature),
-                    .groups = 'drop') %>% 
-          as.data.frame() %>% na.omit()
-       
-        #get forecast
-        myForecast = env_data %>%
-          filter(Country == "Afghanistan") %>% 
-          select(AverageTemperature) %>% 
-          auto.arima() %>%
-          forecast(h = 6*12)
-        #can be changed to allow person to forecast as
-        # far into the future as they want
-        
-        #turn into data frame
-        forecastDF = fortify(myForecast, ts.connect = TRUE) %>% 
-          select("Point Forecast", "Lo 95", "Hi 95") %>% na.omit()
-        rownames(forecastDF) = NULL
-        #need to get this to the point where it takes in the country
-        lastMeasuredDate = env_data %>%
-          filter(Country == "Afghanistan") %>% 
-          select(dayTime) %>% as.vector()
-        rownames(lastMeasuredDate) = NULL
-        forecastDF$timePoint = seq(as.Date(max(lastMeasuredDate$dayTime)), 
-            by = "month", length.out = nrow(forecastDF))
-        names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "timePoint")
-        forecastDF$year = as.numeric(format(forecastDF$timePoint,'%Y'))
-        
-        foo = forecastDF %>% group_by(year) %>% 
-          summarise(mean_temp=mean(pointEst),
-                    .groups = 'drop') %>% 
-          as.data.frame() %>% na.omit()
-
-        ggplot() +               
-          geom_line(data = df2, aes(x = year, y = mean_temp), 
-                     color = "black")+
-          geom_line(data = foo, aes(x = year, y = mean_temp), 
-                    color = "red")+
-          labs(x = "X-Data", y = "Y-Data")+
-          ggtitle("Combined Plot")
-      }else{
       env_data %>% 
         filter(Country == input$variable_country) %>% 
         group_by(year) %>% 
@@ -377,7 +333,6 @@ server <- function(input, output, session) {
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
               axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
-    }
     }
   })
   
