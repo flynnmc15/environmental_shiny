@@ -9,7 +9,11 @@ library(ggfortify)
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
-env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% select(-X) %>% na.omit()
+
+env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% 
+  select(-X) %>% 
+  na.omit()
+
 #make a date time object
 foo = env_data %>% select( year, month, day) %>%
   mutate(dayTime = make_datetime(year = year, month = month, day = day))
@@ -19,7 +23,6 @@ env_data$dayTime = foo$dayTime
 #### IDEAS TO POSSIBLY IMPLEMENT 12/1/22
 # 1. geom_forecast is not working. want to be able to pipe time series data in
 #     possible solution: create a forecast tab.
-
 
 #Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
@@ -144,7 +147,7 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-###############################################################Random Samples for Country Plots###############################################################
+###############################################################Filling in select inputs###############################################################
   #Selecting a city based off a country, for the city plot
   observeEvent(input$variable_country,
                {
@@ -152,20 +155,22 @@ server <- function(input, output, session) {
                                    choices = sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE]))
                })
   
+  #Creating a reactive to randomly choose cities when cities is greater than 30
+  sample_sort <- reactive({
+    pre_sort <- sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE])
+    
+    if(length(pre_sort) > 30) {
+      sample(pre_sort, size = 30)
+    } else {
+      pre_sort
+    }
+  })
+  
   #Filling the check box of cities if you stratify by city, random sample of 30 cities if number of cities exceeds 30, for the country plot
   observeEvent(input$variable_country,
                {
-                 
-                 pre_sort <- sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE])
-                 
-                 sample_sort <- if(length(pre_sort) > 30) {
-                   sample(pre_sort, size = 30)
-                 } else {
-                   pre_sort
-                 }
-                 
-                 updateCheckboxGroupInput(session, input = "city_checkbox", choices = sample_sort, 
-                                          selected = sample_sort)
+                 updateCheckboxGroupInput(session, input = "city_checkbox", choices = sample_sort(), 
+                                          selected = sample_sort())
                })
   
   
@@ -239,6 +244,17 @@ server <- function(input, output, session) {
   
   
   ###############################################################Country Plots###############################################################
+  #Changing the y-axis intervals based on how many cities you stratify by
+  yaxis_intervals <- reactive({
+    pre_sort <- sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE])
+  
+    if(length(pre_sort) > 15) {
+      return(1)
+    } else {
+      return(0.5)
+    }
+  })
+  
   #Country plot with ifelse logic based on whether or not the user wants to stratify by city and lowess line
   output$country_plot <- renderPlot({
     req(input$year_slider)
@@ -260,8 +276,8 @@ server <- function(input, output, session) {
 
     
     #Getting the max and min temp of country selected stratified by cities, also changes based on year selected
-    country_temp <- env_data %>%
-      filter(Country == input$variable_country & year >= min_year & year <= max_year) %>% 
+    country_temp <- env_data %>% 
+      filter(Country == input$variable_country & year >= min_year & year <= max_year & City %in% sample_sort()) %>% 
       group_by(year, City) %>% 
       summarise(avgtemp = mean(AverageTemperature))
     
@@ -273,19 +289,19 @@ server <- function(input, output, session) {
     #Actual country plots with ifelse statements
     if(input$city_color == 1 & input$lowess_line == 1) { #Stratify by cities and add lowess
       env_data %>% 
-          filter(Country == input$variable_country & City %in% input$city_checkbox) %>% 
-          group_by(year, City) %>% 
-          summarise(avgtemp = mean(AverageTemperature)) %>% 
-          ggplot(aes(year, avgtemp, color = City)) +
-          geom_line()+
-          #geom_forecast(forecast(AverageTemperature, h = 5)) + #how do I put in the average temperature???
-          theme_bw() +
-          scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
-          scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
-          labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country, " Cities"), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
-          theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
-                axis.title = element_text(size = 16, face = "bold"), legend.text = element_text(size = 16), legend.title = element_text(size = 16), axis.text = element_text(size = 14)) +
-          geom_smooth(se = FALSE)
+        filter(Country == input$variable_country & City %in% input$city_checkbox) %>% 
+        group_by(year, City) %>% 
+        summarise(avgtemp = mean(AverageTemperature)) %>% 
+        ggplot(aes(year, avgtemp, color = City)) +
+        geom_line() +
+        #geom_forecast(forecast(AverageTemperature, h = 5)) + #how do I put in the average temperature???
+        theme_bw() +
+        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = yaxis_intervals())) +
+        scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
+        labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country, " Cities"), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
+        theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
+              axis.title = element_text(size = 16, face = "bold"), legend.text = element_text(size = 16), legend.title = element_text(size = 16), axis.text = element_text(size = 14)) +
+        geom_smooth(se = FALSE)
     } else if(input$city_color == 1 & input$lowess_line == 0) { #Stratify by cities, no lowess
       env_data %>% 
         filter(Country == input$variable_country & City %in% input$city_checkbox) %>% 
@@ -295,7 +311,7 @@ server <- function(input, output, session) {
         geom_line()+
         geom_forecast() +
         theme_bw() +
-        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
+        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = yaxis_intervals())) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country, " Cities"), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
