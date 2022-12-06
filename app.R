@@ -1,13 +1,27 @@
 library(shiny)
 library(tidyverse)
 library(tidyr)
+library(forecast)
 library(maps)
+library(lubridate)
+library(ggfortify)
 
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
-# env_data <- read.csv("GlobalLandTemperaturesByCity.csv") %>% 
-#   select(-X)
+env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% 
+  select(-X) %>% 
+  na.omit()
+
+#make a date time object
+foo = env_data %>% select( year, month, day) %>%
+  mutate(dayTime = make_datetime(year = year, month = month, day = day))
+env_data$dayTime = foo$dayTime
+
+
+#### IDEAS TO POSSIBLY IMPLEMENT 12/1/22
+# 1. geom_forecast is not working. want to be able to pipe time series data in
+#     possible solution: create a forecast tab.
 
 #Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
@@ -20,6 +34,10 @@ city_list <- env_data %>%
   select(Country, City) %>% 
   distinct(City, .keep_all = TRUE) %>% 
   arrange(Country, City)
+
+#formatting column of months and years in env_data
+# env_data$year <- as.numeric(format(as.Date(env_data$dt), "%Y"))
+# env_data$month = as.numeric(format(as.Date(env_data$dt), "%m"))
 
 #Defining month_year used later in the UI
 month_year <- c("Months", "Years")
@@ -60,7 +78,14 @@ ui <- fluidPage(
                      value = FALSE, 
                    )),
                  conditionalPanel(
-                   condition = "input.tab1 == 'By Country'",   #Adding a stratify by city option to country panel, contains conditional panel, defaults to false
+                   condition = "input.tab1 == 'By Country'",  #Adding a lowess line option, contains conditional panel, defaults to false
+                   checkboxInput(
+                     inputId = "forecast_choice", 
+                     label = "Forecast?", 
+                     value = FALSE, 
+                   )),
+                 conditionalPanel(
+                   condition = "input.tab1 == 'By Country'",   #Adds an option for forecasting or not.
                  checkboxInput(
                    inputId = "city_color", 
                    label = "Stratify by City?", 
@@ -121,7 +146,7 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-###############################################################Random Samples for Country Plots###############################################################
+###############################################################Filling in select inputs###############################################################
   #Selecting a city based off a country, for the city plot
   observeEvent(input$variable_country,
                {
@@ -129,20 +154,22 @@ server <- function(input, output, session) {
                                    choices = sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE]))
                })
   
+  #Creating a reactive to randomly choose cities when cities is greater than 30
+  sample_sort <- reactive({
+    pre_sort <- sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE])
+    
+    if(length(pre_sort) > 30) {
+      sample(pre_sort, size = 30)
+    } else {
+      pre_sort
+    }
+  })
+  
   #Filling the check box of cities if you stratify by city, random sample of 30 cities if number of cities exceeds 30, for the country plot
   observeEvent(input$variable_country,
                {
-                 
-                 pre_sort <- sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE])
-                 
-                 sample_sort <- if(length(pre_sort) > 30) {
-                   sample(pre_sort, size = 30)
-                 } else {
-                   pre_sort
-                 }
-                 
-                 updateCheckboxGroupInput(session, input = "city_checkbox", choices = sample_sort, 
-                                          selected = sample_sort)
+                 updateCheckboxGroupInput(session, input = "city_checkbox", choices = sample_sort(), 
+                                          selected = sample_sort())
                })
   
   
@@ -214,7 +241,19 @@ server <- function(input, output, session) {
   })
   
   
+  
   ###############################################################Country Plots###############################################################
+  #Changing the y-axis intervals based on how many cities you stratify by
+  yaxis_intervals <- reactive({
+    pre_sort <- sort(city_list[city_list$Country %in% input$variable_country, "City", drop = TRUE])
+  
+    if(length(pre_sort) > 15) {
+      return(1)
+    } else {
+      return(0.5)
+    }
+  })
+  
   #Country plot with ifelse logic based on whether or not the user wants to stratify by city and lowess line
   output$country_plot <- renderPlot({
     req(input$year_slider)
@@ -237,7 +276,8 @@ server <- function(input, output, session) {
     
     #Getting the max and min temp of country selected stratified by cities, also changes based on year selected
     country_temp <- env_data %>% 
-      filter(Country == input$variable_country & year >= min_year & year <= max_year) %>% 
+      filter(Country == input$variable_country & year >= min_year & year <= max_year & City %in% sample_sort()) %>% 
+    
       group_by(year, City) %>% 
       summarise(avgtemp = mean(AverageTemperature))
     
@@ -254,24 +294,24 @@ server <- function(input, output, session) {
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp, color = City)) +
         geom_line() +
+        #geom_forecast(forecast(AverageTemperature, h = 5)) + #how do I put in the average temperature???
         theme_bw() +
-        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
+        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = yaxis_intervals())) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country, " Cities"), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
               axis.title = element_text(size = 16, face = "bold"), legend.text = element_text(size = 16), legend.title = element_text(size = 16), axis.text = element_text(size = 14)) +
         geom_smooth(se = FALSE)
-      
-    
     } else if(input$city_color == 1 & input$lowess_line == 0) { #Stratify by cities, no lowess
       env_data %>% 
         filter(Country == input$variable_country & City %in% input$city_checkbox) %>% 
         group_by(year, City) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp, color = City)) +
-        geom_line() +
+        geom_line()+
+        geom_forecast() +
         theme_bw() +
-        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = 0.5)) +
+        scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = yaxis_intervals())) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_country, " Cities"), subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
@@ -284,7 +324,8 @@ server <- function(input, output, session) {
         group_by(year) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp)) +
-        geom_line() +
+        geom_line()+
+        geom_forecast(h=10) +
         theme_bw() +
         scale_y_continuous(limits = c(min_temp, max_temp), breaks = seq(min_temp, max_temp, by = 0.5)) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
@@ -295,12 +336,57 @@ server <- function(input, output, session) {
       
     
     } else { #No stratify by cities, no lowess
+      if(input$forecast_choice == 1){ #if the user wants to forecast:
+        df2 <- env_data %>%
+          filter(Country == "Afghanistan")%>%
+          group_by(year) %>% 
+          summarise(mean_temp=mean(AverageTemperature),
+                    .groups = 'drop') %>% 
+          as.data.frame() %>% na.omit()
+       
+        #get forecast
+        myForecast = env_data %>%
+          filter(Country == "Afghanistan") %>% 
+          select(AverageTemperature) %>% 
+          auto.arima() %>%
+          forecast(h = 6*12)
+        #can be changed to allow person to forecast as
+        # far into the future as they want
+        
+        #turn into data frame
+        forecastDF = fortify(myForecast, ts.connect = TRUE) %>% 
+          select("Point Forecast", "Lo 95", "Hi 95") %>% na.omit()
+        rownames(forecastDF) = NULL
+        #need to get this to the point where it takes in the country
+        lastMeasuredDate = env_data %>%
+          filter(Country == "Afghanistan") %>% 
+          select(dayTime) %>% as.vector()
+        rownames(lastMeasuredDate) = NULL
+        forecastDF$timePoint = seq(as.Date(max(lastMeasuredDate$dayTime)), 
+            by = "month", length.out = nrow(forecastDF))
+        names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "timePoint")
+        forecastDF$year = as.numeric(format(forecastDF$timePoint,'%Y'))
+        
+        foo = forecastDF %>% group_by(year) %>% 
+          summarise(mean_temp=mean(pointEst),
+                    .groups = 'drop') %>% 
+          as.data.frame() %>% na.omit()
+
+        ggplot() +               
+          geom_line(data = df2, aes(x = year, y = mean_temp), 
+                     color = "black")+
+          geom_line(data = foo, aes(x = year, y = mean_temp), 
+                    color = "red")+
+          labs(x = "X-Data", y = "Y-Data")+
+          ggtitle("Combined Plot")
+      }else{
       env_data %>% 
         filter(Country == input$variable_country) %>% 
         group_by(year) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp)) +
-        geom_line() +
+        geom_line()+
+        geom_forecast() +
         theme_bw() +
         scale_y_continuous(limits = c(min_temp, max_temp), breaks = seq(min_temp, max_temp, by = 0.5)) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
@@ -308,7 +394,7 @@ server <- function(input, output, session) {
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
               axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
     }
-    
+    }
   })
   
   
@@ -349,7 +435,8 @@ server <- function(input, output, session) {
     env_data %>% 
       filter(City == input$variable_city & year == input$select_year) %>% 
       ggplot(aes(month, AverageTemperature)) +
-      geom_line() +
+      geom_line()+
+      # autoplot() + geom_forecast(h = 5)+
       scale_x_continuous(limits = c(min_month, max_month), breaks = seq(min_month, max_month, by = 1)) +
       scale_y_continuous(limits = c(min_temp_month, max_temp_month), breaks = seq(min_temp_month, max_temp_month, by = 1)) +
       theme_bw() +
@@ -363,7 +450,7 @@ server <- function(input, output, session) {
         group_by(year) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp)) +
-        geom_line() +
+        geom_forecast() +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         scale_y_continuous(limits = c(min_temp_year, max_temp_year), breaks = seq(min_temp_year, max_temp_year, by = 1)) +
         theme_bw() +
