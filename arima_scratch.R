@@ -84,5 +84,7 @@ p + geom_forecast()
     geom_errorbar(data = forecastDF, 
                   aes(x = dayTime, y = pointEst,ymin = lowerBound, ymax = upperBound), 
                   color = "light blue") +
-      geom_smooth(data = combinedDF, se = FALSE)
+      geom_smooth(data = combinedDF, se = FALSE, method = "loess", formula = y~x)+
+    labs(x = "Date", y = "Temperature")+
+         ggtitle( paste0("Monthly temperatures in ", "Afghanistan", " with predictions"))
   
