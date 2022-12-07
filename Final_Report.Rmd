@@ -35,7 +35,12 @@ head(env_data)
 Our goal is to communicate statistical analysis of global surface temperatures to policy makers or curious citizens via a user-friendly Shiny application. 
 
 # Analysis
+### How we built the App
 
+### ARIMA
+
+### Big Data Application
+-Data can be slow to load, fast loading/load as necessary.
 
 # Results
 
