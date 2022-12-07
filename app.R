@@ -20,10 +20,6 @@ foo = env_data %>% select( year, month, day) %>%
 env_data$dayTime = foo$dayTime
 
 
-#### IDEAS TO POSSIBLY IMPLEMENT 12/1/22
-# 1. geom_forecast is not working. want to be able to pipe time series data in
-#     possible solution: create a forecast tab.
-
 #Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
   distinct(Country) %>% 
