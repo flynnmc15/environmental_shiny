@@ -5,23 +5,20 @@ library(forecast)
 library(maps)
 library(lubridate)
 library(ggfortify)
+library(data.table)
 
-# setwd("/Users/flynnmc/Desktop/environmental_shiny")
-# env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
+setwd("/Users/flynnmc/Desktop/environmental_shiny")
 
-# env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% 
-#   select(-X) %>% 
+#A much faster way to read in the data
+# env_data <- as.data.frame(fread("GlobalLandTemperaturesByCity.csv", showProgress = F)) %>%
+#   select(-V1) %>%
 #   na.omit()
 
-#make a date time object
-foo = env_data %>% select( year, month, day) %>%
+#Make a date time object
+foo = env_data %>% select(year, month, day) %>%
   mutate(dayTime = make_datetime(year = year, month = month, day = day))
 env_data$dayTime = foo$dayTime
 
-
-#### IDEAS TO POSSIBLY IMPLEMENT 12/1/22
-# 1. geom_forecast is not working. want to be able to pipe time series data in
-#     possible solution: create a forecast tab.
 
 #Getting a vector of the country names to add into variable_country selectinput
 country_list <- env_data %>% 
@@ -35,7 +32,7 @@ city_list <- env_data %>%
   distinct(City, .keep_all = TRUE) %>% 
   arrange(Country, City)
 
-#formatting column of months and years in env_data
+#Formatting column of months and years in env_data
 # env_data$year <- as.numeric(format(as.Date(env_data$dt), "%Y"))
 # env_data$month = as.numeric(format(as.Date(env_data$dt), "%m"))
 
@@ -78,6 +75,13 @@ ui <- fluidPage(
                      value = FALSE, 
                    )),
                  conditionalPanel(
+                   condition = "input.tab1 == 'Forecast'",  #Adding a lowess line option for forecasting, contains conditional panel, defaults to false
+                   checkboxInput(
+                     inputId = "forecast_lowess", 
+                     label = "Add Lowess Line", 
+                     value = FALSE, 
+                   )),
+                 conditionalPanel(
                    condition = "input.tab1 == 'By Country'",   #Adds an option to stratify by city, contains conditional panel, defaults to falsee
                  checkboxInput(
                    inputId = "city_color", 
@@ -90,13 +94,6 @@ ui <- fluidPage(
                      inputId = "city_checkbox",
                      label = "Cities:",
                      choices = NULL
-                   )),
-                 conditionalPanel(
-                   condition = "input.tab1 == 'By Country'",  #Adding a forecast button, contains a conditional panel
-                   checkboxInput(
-                     inputId = "forecast_choice", 
-                     label = "Generate Forecast",
-                     value = FALSE
                    )),
                  br(), #Adds a small break in between action button and radio button
                  conditionalPanel(
@@ -116,11 +113,19 @@ ui <- fluidPage(
                    uiOutput(
                      "year_slider_2"
                    )),
-                conditionalPanel(
-                  condition = "input.tab1 == 'By City' & input.month_year == 'Months'",        #UI output for a slider to select a month range, contains conditional panel
-                 uiOutput(
-                   "month_slider"
-                  )),
+                 conditionalPanel(
+                   condition = "input.tab1 == 'By City' & input.month_year == 'Months'",                #Allows user to select a different angle for city graph displaying months
+                   sliderInput(
+                     inputId = "axis_angle",
+                     label = "Angle of Month Label",
+                     min = 0,
+                     max = 30,
+                     value = 0,
+                     round = TRUE,
+                     step = 5,
+                     ticks = TRUE,
+                     width = "100%"
+                   )),
                 radioButtons(
                   inputId = "download_type",      #Allows the user to choose what type of download they want
                   label = "Type of Download?",
@@ -135,7 +140,8 @@ ui <- fluidPage(
     mainPanel(width = 9,
                 tabsetPanel(id = "tab1", type = "tabs",
                             tabPanel("By Country", br(), plotOutput("country_plot", height = "600px")),  #Country plot tab
-                            tabPanel("By City", br(), plotOutput("city_plot", height = "600px"))),   #City plot tab
+                            tabPanel("By City", br(), plotOutput("city_plot", height = "600px")),        #City plot tab
+                            tabPanel("Forecast", br(), plotOutput("forecast_plot", height = "600px"))),      #Forecast tab
               
     ),
   ))
@@ -210,23 +216,6 @@ server <- function(input, output, session) {
     
   })
   
-  #Month slider
-  output$month_slider <- renderUI({
-    
-    sliderInput(
-      inputId = "month_slider",
-      label = "Month Range",
-      min = 1,
-      max = 12,
-      value = c(1, 12),
-      step = 2,
-      ticks = TRUE,
-      dragRange = TRUE,
-      round = TRUE
-    )
-    
-  })
-  
   #Input a year for cities graph
   output$select_year <- renderUI({
     
@@ -292,7 +281,6 @@ server <- function(input, output, session) {
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp, color = City)) +
         geom_line() +
-        #geom_forecast(forecast(AverageTemperature, h = 5)) + #how do I put in the average temperature???
         theme_bw() +
         scale_y_continuous(limits = c(min_temp_strat, max_temp_strat), breaks = seq(min_temp_strat, max_temp_strat, by = yaxis_intervals())) +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
@@ -334,50 +322,6 @@ server <- function(input, output, session) {
       
     
     } else { #No stratify by cities, no lowess
-      if(input$forecast_choice == 1){ #if the user wants to forecast:
-        df2 <- env_data %>%
-          filter(Country == "Afghanistan")%>%
-          group_by(year) %>% 
-          summarise(mean_temp=mean(AverageTemperature),
-                    .groups = 'drop') %>% 
-          as.data.frame() %>% na.omit()
-       
-        #get forecast
-        myForecast = env_data %>%
-          filter(Country == "Afghanistan") %>% 
-          select(AverageTemperature) %>% 
-          auto.arima() %>%
-          forecast(h = 6*12)
-        #can be changed to allow person to forecast as
-        # far into the future as they want
-        
-        #turn into data frame
-        forecastDF = fortify(myForecast, ts.connect = TRUE) %>% 
-          select("Point Forecast", "Lo 95", "Hi 95") %>% na.omit()
-        rownames(forecastDF) = NULL
-        #need to get this to the point where it takes in the country
-        lastMeasuredDate = env_data %>%
-          filter(Country == "Afghanistan") %>% 
-          select(dayTime) %>% as.vector()
-        rownames(lastMeasuredDate) = NULL
-        forecastDF$timePoint = seq(as.Date(max(lastMeasuredDate$dayTime)), 
-            by = "month", length.out = nrow(forecastDF))
-        names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "timePoint")
-        forecastDF$year = as.numeric(format(forecastDF$timePoint,'%Y'))
-        
-        foo = forecastDF %>% group_by(year) %>% 
-          summarise(mean_temp=mean(pointEst),
-                    .groups = 'drop') %>% 
-          as.data.frame() %>% na.omit()
-
-        ggplot() +               
-          geom_line(data = df2, aes(x = year, y = mean_temp), 
-                     color = "black")+
-          geom_line(data = foo, aes(x = year, y = mean_temp), 
-                    color = "red")+
-          labs(x = "X-Data", y = "Y-Data")+
-          ggtitle("Combined Plot")
-      } else {
       env_data %>% 
         filter(Country == input$variable_country) %>% 
         group_by(year) %>% 
@@ -392,22 +336,16 @@ server <- function(input, output, session) {
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
               axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
     }
-    }
   })
   
   
   ###############################################################City Plots###############################################################
   output$city_plot <- renderPlot({
-    req(input$month_slider)
     req(input$year_slider_2)
-    
-    #Getting the max and min month selected by user
-    max_month <- max(input$month_slider)
-    min_month <- min(input$month_slider)
     
     #Getting the monthly max and min temp of city selected, also changes based on month selected
     city_temp <- env_data %>% 
-      filter(City == input$variable_city & month >= min_month & month <= max_month & year == input$select_year)
+      filter(City == input$variable_city & year == input$select_year)
     
     max_temp_month <- round(max(city_temp$AverageTemperature, na.rm = TRUE), 0) + 0.5
     min_temp_month <- round(min(city_temp$AverageTemperature, na.rm = TRUE), 0) - 0.5
@@ -432,15 +370,17 @@ server <- function(input, output, session) {
     if(input$month_year == "Months") { #User selected for cities to be displayed in months
     env_data %>% 
       filter(City == input$variable_city & year == input$select_year) %>% 
-      ggplot(aes(month, AverageTemperature)) +
+      mutate(month_cat = as.factor(case_when(month == 1 ~ "January", month == 2 ~ "February", month == 3 ~ "March", month == 4 ~ "April", month == 5 ~ "May", month == 6 ~ "June",
+                                               month == 7 ~ "July", month == 8 ~ "August", month == 9 ~ "September", month == 10 ~ "October", month == 11 ~ "November", 
+                                               month == 12 ~ "December"))) %>% 
+      mutate(month_cat = fct_relevel(month_cat, c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"))) %>% 
+      ggplot(aes(month_cat, AverageTemperature, group = 1)) +
       geom_line()+
-      # autoplot() + geom_forecast(h = 5)+
-      scale_x_continuous(limits = c(min_month, max_month), breaks = seq(min_month, max_month, by = 1)) +
       scale_y_continuous(limits = c(min_temp_month, max_temp_month), breaks = seq(min_temp_month, max_temp_month, by = 1)) +
       theme_bw() +
       labs(x = "Month", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_city, " in ", input$select_year), subtitle = "On the First of Every Month") +
       theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
-            axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
+            axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14), axis.text.x = element_text(angle = input$axis_angle, hjust = 0.5, vjust = 0.25))
       
     } else { #User selected for cities to be displayed in years
       env_data %>% 
@@ -456,6 +396,89 @@ server <- function(input, output, session) {
              subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
               axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
+    }
+  })
+  
+  
+  ###############################################################City Plots###############################################################
+  output$forecast_plot <- renderPlot({
+    
+    #Pre-plot processing
+    df2 <- env_data %>%
+      filter(Country == input$variable_country & year >= 2008)%>%
+      group_by(dayTime) %>% 
+      mutate(pointEst = mean(AverageTemperature)) %>% 
+      select(dayTime, pointEst) %>% 
+      distinct(pointEst) %>% 
+      as.data.frame() %>% 
+      na.omit()
+    
+    #Get forecast
+    myForecast = env_data %>%
+      filter(Country ==  input$variable_country) %>% 
+      group_by(dayTime) %>% 
+      mutate(pointEst = mean(AverageTemperature)) %>% 
+      select(pointEst) %>% 
+      distinct(pointEst) %>% 
+      ungroup() %>% 
+      select(pointEst) %>% 
+      auto.arima() %>%
+      forecast(h = 5*12 )
+    #Can be changed to allow person to forecast as far into the future as they want
+    
+    #Turn into data frame
+    forecastDF = fortify(myForecast, ts.connect = TRUE) %>% 
+      select("Point Forecast", "Lo 95", "Hi 95") %>% na.omit()
+    rownames(forecastDF) = NULL
+    
+    #Need to get this to the point where it takes in the country
+    lastMeasuredDate = df2 %>%
+      select(dayTime) %>% as.vector()
+    rownames(lastMeasuredDate) = NULL
+    forecastDF$dayTime = ymd(seq(as.Date(max(lastMeasuredDate$dayTime)), 
+                                 by = "month", length.out = nrow(forecastDF)))
+    names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "dayTime")
+    forecastDF$year = as.numeric(format(forecastDF$dayTime,'%Y'))
+    
+    df2$dayTime = as_date(df2$dayTime, tz = NULL)
+    forecastDF$dayTime = as_date(forecastDF$dayTime, tz = NULL)
+    
+    combinedDF = forecastDF %>% select(dayTime, pointEst) %>% 
+      bind_rows(df2)
+    
+    combinedDF_2 <- combinedDF %>% 
+      separate(dayTime, c("year_label", "month_label", "day_label"), "-")
+  
+    
+    if(input$forecast_lowess == 1) { #Forecast plot with lowess line
+      
+      ggplot(data = NULL, aes(x = dayTime, y = pointEst)) +
+        geom_line(data = df2) +
+        geom_line(data = forecastDF)+
+        geom_errorbar(data = forecastDF, 
+                      aes(x = dayTime, y = pointEst,ymin = lowerBound, ymax = upperBound), 
+                      color = "light blue") +
+        theme_bw() +
+        geom_smooth(data = combinedDF, se = FALSE, method = "loess", formula = y~x)+
+        labs(x = "Date", y = "Temperature (Celsius)", title = paste0("Monthly Temperatures in ", input$variable_country, " With Predictions"), 
+             subtitle = paste0("From ", min(combinedDF_2$year_label), "-", max(combinedDF_2$year_label))) +
+        theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
+              axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
+      
+    } else { #Forecast plot without lowess line
+      
+      ggplot(data = NULL, aes(x = dayTime, y = pointEst)) +
+        geom_line(data = df2) +
+        geom_line(data = forecastDF)+
+        geom_errorbar(data = forecastDF, 
+                      aes(x = dayTime, y = pointEst,ymin = lowerBound, ymax = upperBound), 
+                      color = "light blue") +
+        theme_bw() +
+        labs(x = "Date", y = "Temperature (Celsius)", title = paste0("Monthly Temperatures in ", input$variable_country, " With Predictions"), 
+             subtitle = paste0("From ", min(combinedDF_2$year_label), "-", max(combinedDF_2$year_label))) +
+        theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
+              axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
+      
     }
   })
   
