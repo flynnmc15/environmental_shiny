@@ -7,14 +7,12 @@ library(lubridate)
 library(ggfortify)
 library(data.table)
 
-#setwd("/Users/flynnmc/Desktop/environmental_shiny")
-
-# Problem with By City tabe!!
+setwd("/Users/flynnmc/Desktop/environmental_shiny")
 
 #A much faster way to read in the data
-env_data <- as.data.frame(fread("~/GlobalLandTemperaturesByCity.csv", showProgress = F)) %>%
-  select(-V1) %>%
-  na.omit()
+# env_data <- as.data.frame(fread("GlobalLandTemperaturesByCity.csv", showProgress = F)) %>%
+#   select(-V1) %>%
+#   na.omit()
 
 #Make a date time object
 foo = env_data %>% select(year, month, day) %>%
@@ -73,6 +71,13 @@ ui <- fluidPage(
                    condition = "input.tab1 == 'By Country'",  #Adding a lowess line option, contains conditional panel, defaults to false
                    checkboxInput(
                      inputId = "lowess_line", 
+                     label = "Add Lowess Line", 
+                     value = FALSE, 
+                   )),
+                 conditionalPanel(
+                   condition = "input.tab1 == 'By City' & input.month_year == 'Years'",  #Adding a lowess line option, contains conditional panel, defaults to false
+                   checkboxInput(
+                     inputId = "lowess_line_city", 
                      label = "Add Lowess Line", 
                      value = FALSE, 
                    )),
@@ -338,12 +343,14 @@ server <- function(input, output, session) {
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
               axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
     }
-  })
+  }) %>% 
+    bindCache(input$variable_country, input$year_slider, input$city_checkbox, yaxis_intervals(), input$city_color, input$lowess_line)
   
   
   ###############################################################City Plots###############################################################
   output$city_plot <- renderPlot({
     req(input$year_slider_2)
+    req(input$select_year)
     
     #Getting the monthly max and min temp of city selected, also changes based on month selected
     city_temp <- env_data %>% 
@@ -385,6 +392,8 @@ server <- function(input, output, session) {
             axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14), axis.text.x = element_text(angle = input$axis_angle, hjust = 0.5, vjust = 0.25))
       
     } else { #User selected for cities to be displayed in years
+      if(input$lowess_line_city == 1) {
+        
       env_data %>% 
         filter(City == input$variable_city) %>% 
         group_by(year) %>% 
@@ -395,11 +404,30 @@ server <- function(input, output, session) {
         scale_y_continuous(limits = c(min_temp_year, max_temp_year), breaks = seq(min_temp_year, max_temp_year, by = 1)) +
         theme_bw() +
         labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_city), 
-             subtitle = paste0("From ", min(input$year_slider), "-", max(input$year_slider))) +
+             subtitle = paste0("From ", min(input$year_slider_2), "-", max(input$year_slider_2))) +
         theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
-              axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
+              axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14)) +
+        geom_smooth(se = FALSE)
+        
+      } else {
+        
+        env_data %>% 
+          filter(City == input$variable_city) %>% 
+          group_by(year) %>% 
+          summarise(avgtemp = mean(AverageTemperature)) %>% 
+          ggplot(aes(year, avgtemp)) +
+          geom_line() +
+          scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
+          scale_y_continuous(limits = c(min_temp_year, max_temp_year), breaks = seq(min_temp_year, max_temp_year, by = 1)) +
+          theme_bw() +
+          labs(x = "Year", y = "Average Temperature (Celsius)", title = paste0("Average Temperature in ", input$variable_city), 
+               subtitle = paste0("From ", min(input$year_slider_2), "-", max(input$year_slider_2))) +
+          theme(plot.title = element_text(hjust = 0.5, size = 20, face = "bold"), plot.subtitle = element_text(hjust = 0.5, size = 16), 
+                axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
+      }
     }
-  })
+  }) %>% 
+    bindCache(input$variable_city, input$year_slider, input$select_year, input$axis_angle, input$year_slider_2, input$month_year, input$lowess_line_city)
   
   
   ###############################################################Forecasting Plots###############################################################
@@ -482,7 +510,8 @@ server <- function(input, output, session) {
               axis.title = element_text(size = 16, face = "bold"), axis.text = element_text(size = 14))
       
     }
-  })
+  }) %>% 
+    bindCache(input$variable_country, input$forecast_lowess)
   
   
   ###############################################################Downloading Plots###############################################################
