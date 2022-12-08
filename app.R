@@ -388,7 +388,7 @@ server <- function(input, output, session) {
         group_by(year) %>% 
         summarise(avgtemp = mean(AverageTemperature)) %>% 
         ggplot(aes(year, avgtemp)) +
-        geom_forecast() +
+        geom_line() +
         scale_x_continuous(limits = c(min_year, max_year), breaks = seq(min_year, max_year, by = 10)) +
         scale_y_continuous(limits = c(min_temp_year, max_temp_year), breaks = seq(min_temp_year, max_temp_year, by = 1)) +
         theme_bw() +
@@ -400,7 +400,7 @@ server <- function(input, output, session) {
   })
   
   
-  ###############################################################City Plots###############################################################
+  ###############################################################Forecasting Plots###############################################################
   output$forecast_plot <- renderPlot({
     
     #Pre-plot processing
