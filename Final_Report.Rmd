@@ -8,7 +8,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Background
-Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing. Due to the uneven naturs of warming, average temperatures will reflect the average global temperature, not the temperature in a specific geographic location. We wnat to be able to visualize and communicate data that we have gathered to various stakeholders. 
+Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing. Due to the uneven nature of warming, average temperatures will reflect the average global temperature, not the temperature in a specific geographic location. We want to be able to visualize and communicate data that we have gathered to various stakeholders. 
 
 Our final project aims to increase the ease of investigators to access data and statistical methods. We have created an app that allows people to visualize the change in average temperature historically, as well as the predicted temperature changes for that country out 5 years.
 
