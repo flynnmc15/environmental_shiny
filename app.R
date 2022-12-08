@@ -8,11 +8,10 @@ library(ggfortify)
 
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
-# setwd("/Users/flynnmc/Desktop/environmental_shiny")
 
-env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% 
-  select(-X) %>% 
-  na.omit()
+# env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% 
+#   select(-X) %>% 
+#   na.omit()
 
 #make a date time object
 foo = env_data %>% select( year, month, day) %>%
@@ -75,31 +74,31 @@ ui <- fluidPage(
                    condition = "input.tab1 == 'By Country'",  #Adding a lowess line option, contains conditional panel, defaults to false
                    checkboxInput(
                      inputId = "lowess_line", 
-                     label = "Add Lowess Line?", 
+                     label = "Add Lowess Line", 
                      value = FALSE, 
                    )),
                  conditionalPanel(
-                   condition = "input.tab1 == 'By Country'",  #Adding a lowess line option, contains conditional panel, defaults to false
-                   checkboxInput(
-                     inputId = "forecast_choice", 
-                     label = "Forecast?", 
-                     value = FALSE, 
-                   )),
-                 conditionalPanel(
-                   condition = "input.tab1 == 'By Country'",   #Adds an option for forecasting or not.
+                   condition = "input.tab1 == 'By Country'",   #Adds an option to stratify by city, contains conditional panel, defaults to falsee
                  checkboxInput(
                    inputId = "city_color", 
-                   label = "Stratify by City?", 
+                   label = "Stratify by City", 
                    value = FALSE, 
                  )),
                  conditionalPanel(
-                   condition = "input.city_color == 1 & input.tab1 == 'By Country'",    #Adding a group checkbox so you can turn cities on and off in the country plot, choices defined in server, 
-                                                                                        # contains conditional panel
+                   condition = "input.city_color == 1 & input.tab1 == 'By Country'",    #Adding a group checkbox so you can turn cities on and off in the country plot, choices defined in server, contains conditional panel
                    checkboxGroupInput(
                      inputId = "city_checkbox",
                      label = "Cities:",
                      choices = NULL
                    )),
+                 conditionalPanel(
+                   condition = "input.tab1 == 'By Country'",  #Adding a forecast button, contains a conditional panel
+                   checkboxInput(
+                     inputId = "forecast_choice", 
+                     label = "Generate Forecast",
+                     value = FALSE
+                   )),
+                 br(), #Adds a small break in between action button and radio button
                  conditionalPanel(
                    condition = "input.tab1 == 'By City'",    #Asks the user if they want the city temp to be displayed over months or years
                    radioButtons(
@@ -241,7 +240,23 @@ server <- function(input, output, session) {
     
   })
   
-  
+  observeEvent(input$forecast_choice, {
+  if(input$lowess_line == 0 & input$city_color == 0) {
+    if(input$forecast_choice == 1) {
+      return()
+    } else {
+      return()
+    }
+  } else {
+    observeEvent()
+    if(input$forecast_choice == 1) {
+      return()
+    } else {
+      return()
+    }
+   }
+  })
+
   
   ###############################################################Country Plots###############################################################
   #Changing the y-axis intervals based on how many cities you stratify by
@@ -379,7 +394,7 @@ server <- function(input, output, session) {
                     color = "red")+
           labs(x = "X-Data", y = "Y-Data")+
           ggtitle("Combined Plot")
-      }else{
+      } else {
       env_data %>% 
         filter(Country == input$variable_country) %>% 
         group_by(year) %>% 
