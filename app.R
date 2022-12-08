@@ -7,12 +7,12 @@ library(lubridate)
 library(ggfortify)
 library(data.table)
 
-setwd("/Users/flynnmc/Desktop/environmental_shiny")
+#setwd("/Users/flynnmc/Desktop/environmental_shiny")
 
 #A much faster way to read in the data
-# env_data <- as.data.frame(fread("GlobalLandTemperaturesByCity.csv", showProgress = F)) %>%
-#   select(-V1) %>%
-#   na.omit()
+env_data <- as.data.frame(data.table::fread("~/GlobalLandTemperaturesByCity.csv", showProgress = F)) %>%
+  select(-V1) %>%
+  na.omit()
 
 #Make a date time object
 foo = env_data %>% select(year, month, day) %>%
