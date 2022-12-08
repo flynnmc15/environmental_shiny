@@ -1,4 +1,4 @@
-install.packages("forecast")
+#install.packages("forecast")
 library(forecast)
 dat = env_data[which(env_data$Country=="United States"),]
 table(dat$City)
@@ -25,30 +25,66 @@ p <- p + geom_line()
 p + geom_forecast()
 
 
-#from a blog, will use as inspiration, plots later to come.
-funggcast<-function(dn,fcast){ 
-  require(zoo) #needed for the 'as.yearmon()' function
+
+
+
+
+
+########## Piece for forecast button! #############
+
+# needs to be changed from Afghanistan to 
+#if the user wants to forecast:
+
+  df2 <- env_data %>%
+    filter(Country == "Afghanistan" & year >= 2008)%>%
+  group_by(dayTime) %>% 
+  mutate(pointEst = mean(AverageTemperature)) %>% 
+  select(dayTime, pointEst) %>% 
+  distinct(pointEst) %>% 
+    as.data.frame() %>% na.omit()
   
-  en<-max(time(fcast$mean)) #extract the max date used in the forecast
+  # get forecast
+  myForecast = env_data %>%
+    filter(Country == "Afghanistan") %>% 
+    group_by(dayTime) %>% 
+    mutate(pointEst = mean(AverageTemperature)) %>% 
+    select(pointEst) %>% 
+    distinct(pointEst) %>% 
+    ungroup() %>% 
+    select(pointEst) %>% 
+    auto.arima() %>%
+    forecast(h = 5*12 )
+  #can be changed to allow person to forecast as
+  # far into the future as they want
   
-  #Extract Source and Training Data
-  ds<-as.data.frame(window(dn,end=en))
-  names(ds)<-'observed'
-  ds$date<-as.Date(time(window(dn,end=en)))
+  #turn into data frame
+  forecastDF = fortify(myForecast, ts.connect = TRUE) %>% 
+    select("Point Forecast", "Lo 95", "Hi 95") %>% na.omit()
+  rownames(forecastDF) = NULL
+  #need to get this to the point where it takes in the country
+  lastMeasuredDate = df2 %>%
+    select(dayTime) %>% as.vector()
+  rownames(lastMeasuredDate) = NULL
+  forecastDF$dayTime = ymd(seq(as.Date(max(lastMeasuredDate$dayTime)), 
+                             by = "month", length.out = nrow(forecastDF)))
+  names(forecastDF) = c("pointEst", "upperBound", "lowerBound", "dayTime")
+  forecastDF$year = as.numeric(format(forecastDF$dayTime,'%Y'))
   
-  #Extract the Fitted Values (need to figure out how to grab confidence intervals)
-  dfit<-as.data.frame(fcast$fitted)
-  dfit$date<-as.Date(time(fcast$fitted))
-  names(dfit)[1]<-'fitted'
+  df2$dayTime = as_date(df2$dayTime, tz = NULL)
+  forecastDF$dayTime = as_date(forecastDF$dayTime, tz = NULL)
+
+  combinedDF = forecastDF %>% select(dayTime, pointEst) %>% 
+    bind_rows(df2)
+
   
-  ds<-merge(ds,dfit,all.x=T) #Merge fitted values with source and training data
+  ggplot(data = NULL, aes(x = dayTime, y = pointEst)) +
+    geom_line(data = df2) +
+    geom_line(data = forecastDF)+
+     #can add lowess in to the prediction model!!
+    geom_errorbar(data = forecastDF, 
+                  aes(x = dayTime, y = pointEst,ymin = lowerBound, ymax = upperBound), 
+                  color = "light blue") +
+      geom_smooth(data = combinedDF, se = FALSE, method = "loess", formula = y~x)+
+    labs(x = "Date", y = "Temperature")+
+         ggtitle( paste0("Monthly temperatures in ", "Afghanistan", " with predictions"))
   
-  #Exract the Forecast values and confidence intervals
-  dfcastn<-as.data.frame(fcast)
-  dfcastn$date<-as.Date(as.yearmon(row.names(dfcastn)))
-  names(dfcastn)<-c('forecast','lo80','hi80','lo95','hi95','date')
-  
-  pd<-merge(ds,dfcastn,all.x=T) #final data.frame for use in ggplot
-  return(pd)
-  
-}
