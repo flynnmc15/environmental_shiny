@@ -8,12 +8,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Background
+Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing. Due to the uneven naturs of warming, average temperatures will reflect the average global temperature, not the temperature in a specific geographic location. We wnat to be able to visualize and communicate data that we have gathered to various stakeholders. 
 
-Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing. This problem must be carefully monitored, and one way to do that is by utilizing data. 
+Our final project aims to increase the ease of investigators to access data and statistical methods. We have created an app that allows people to visualize the change in average temperature historically, as well as the predicted temperature changes for that country out 5 years.
 
 # Data
 
-The data are collected from UC-Berkley’s climate lab, spanning 1750-2022. It is publicly available on Kaggle under "Climate Change: Earth Surface Temperature Data". Specifically, we are utilizing the Global Land Temperatures By City (GlobalLandTemperaturesByCity.csv) file. The variables of interest are Average Temperature, Latitude, Longitude, City, Country, and Date. In the 1980's, Average Temperature started being measured by a digital thermometer which may make recent measurements more accurate.
+The data are collected from UC-Berkley’s climate lab, spanning 1750-2013. It is publicly available on Kaggle under "Climate Change: Earth Surface Temperature Data". Specifically, we are utilizing the Global Land Temperatures By City (GlobalLandTemperaturesByCity.csv) file. The variables of interest are Average Temperature, Latitude, Longitude, City, Country, and Date. In the 1980's, Average Temperature started being measured by a digital thermometer which may make recent measurements more accurate, but reflect a cooling bias relative to older measures.
 
 ### Data preview:
 
@@ -28,6 +29,7 @@ env_data <- fread("GlobalLandTemperaturesByCity.csv", showProgress = F) %>%
 
 ```{r}
 head(env_data)
+dim(env_data)
 ```
 
 # Research Aim
