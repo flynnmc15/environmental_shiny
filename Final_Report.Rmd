@@ -36,7 +36,10 @@ dim(env_data)
 DOES A TABLE 1 MAKE SENSE HERE?? I think we could take some randomly sampled countries?
 
 ```{r}
-smallNumObs = env_data[which(env_data$Country %in% sample(unique(env_data$Country), 10, replace = FALSE)),]
+
+smallNumObs = env_data[which(env_data$Country %in% 
+                               sample(unique(env_data$Country), 1, replace = FALSE)),]
+table1(~year + AverageTemperature  |City, data = smallNumObs)
 ```
 
 
