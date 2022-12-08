@@ -33,7 +33,7 @@ head(env_data)
 dim(env_data)
 ```
 
-DOES A TABLE 1 MAKE SENSE HERE?? I think we could take some randomly sampled countries?
+Below is a table with a randomly sampled country in our dataset.
 
 ```{r}
 
@@ -56,7 +56,9 @@ We started with a skeleton of the side bar and tab panels. Then, we utilized ggp
 
 ### ARIMA
 
-To make predictions about future temperature trends, we utilized the ARIMA (AutoRegressive Integrated Moving Average) model which is a statistical method for time series forecasting. In the R package 'forecast', we utilized the auto.arima() function, which returns the best ARIMA model according to either AIC or BIC values. We then forecasted this model with the forecast() function. [Abby you can make amend this]
+To make predictions about future temperature trends, we utilized the ARIMA (AutoRegressive Integrated Moving Average) model which is a statistical method for time series forecasting. In the R package 'forecast', we utilized the auto.arima() function, which returns the best ARIMA model according to either AIC or BIC values. This model has the advantage of automatically choosing a model that include parameters that make the most sense. ARIMA models has three parameters that you can fit to them, and because we have 159 countries, we wanted the auto.arima() function to automate the process of fitting time series models.
+
+When forecasting the time series model, 
 
 ### Big Data Application
 
