@@ -7,11 +7,9 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-From rubric: The report is clearly written and sufficiently introduces the dataset of choice, the question of interest, the approach taken, and the results.
-
 # Background
 
-Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing.
+Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing. This problem must be carefully monitored, and one way to do that is by utilizing data. 
 
 # Data
 
@@ -21,9 +19,11 @@ The data are collected from UC-Berkley’s climate lab, spanning 1750-2022. It i
 
 ```{r, include=FALSE}
 library(tidyverse)
+library(data.table)
 setwd("/home/gtiernon/biostat625/project")
-env_data <- read.csv("GlobalLandTemperaturesByCity.csv") %>% 
-  select(-X)
+env_data <- fread("GlobalLandTemperaturesByCity.csv", showProgress = F) %>%
+  select(-V1) %>%
+  na.omit()
 ```
 
 ```{r}
@@ -32,13 +32,36 @@ head(env_data)
 
 # Research Aim
 
-Our goal is to communicate statistical analysis of global surface temperatures to policy makers or curious citizens via a user-friendly Shiny application. 
+Our goal is to communicate time series forecasting of global surface temperatures to policy makers, or curious citizens, through interactive visualizations on a user-friendly Shiny application. 
 
 # Analysis
 
+### How we built the App
+
+We started with a skeleton of the side bar and tab panels. Then, we utilized ggplot() to create the figures...[Flynn you can write this]
+
+### ARIMA
+
+To make predictions about future temperature trends, we utilized the ARIMA (AutoRegressive Integrated Moving Average) model which is a statistical method for time series forecasting. In the R package 'forecast', we utilized the auto.arima() function, which returns the best ARIMA model according to either AIC or BIC values. We then forecasted this model with the forecast() function. [Abby you can make amend this]
+
+### Big Data Application
+
+When handling 'Big Data', computational efficiency is key for faster loading times. When coding the app, we avoided nested loops, bench marked our functions, and eliminated any necessary code to account for this. We used data.table::fread() to decrease the amount memory used and the time it takes to read the data. This cut the time it takes to launch the app in half. 
 
 # Results
 
-Link to shiny app with maybe a description of trends we observed. 
+### GitHub Link
+
+https://github.com/flynnmc15/environmental_shiny
+
+### App link
+
+
+# Contributions
+
+Every group member utilized github to collaborate on the project.
+Flynn created the GitHub repository, and built the RShiny app, including the data processing, user inputs, average temperature figures, and download features.
+Abby implemented the ARIMA model, and used forecast to produce the temperature prediction figures. She also made presentation slides.
+Grace wrote the Rmarkdown report and benchmark file and made presentation slides.
 
 
