@@ -5,17 +5,18 @@ library(forecast)
 library(maps)
 library(lubridate)
 library(ggfortify)
+library(data.table)
 
 # setwd("/Users/flynnmc/Desktop/environmental_shiny")
 # env_data <- read.csv("GlobalLandTemperaturesByCity.csv")
-# setwd("/Users/flynnmc/Desktop/environmental_shiny")
 
-env_data <- read.csv("~/GlobalLandTemperaturesByCity.csv") %>% 
-  select(-X) %>% 
+#a much faster way to read in the data
+env_data <- as.data.frame(fread("GlobalLandTemperaturesByCity.csv", showProgress = F)) %>%
+  select(-V1) %>%
   na.omit()
 
 #make a date time object
-foo = env_data %>% select( year, month, day) %>%
+foo = env_data %>% select(year, month, day) %>%
   mutate(dayTime = make_datetime(year = year, month = month, day = day))
 env_data$dayTime = foo$dayTime
 
