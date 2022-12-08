@@ -58,7 +58,13 @@ We started with a skeleton of the side bar and tab panels. We used various selec
 
 To make predictions about future temperature trends, we utilized the ARIMA (AutoRegressive Integrated Moving Average) model which is a statistical method for time series forecasting. In the R package 'forecast', we utilized the auto.arima() function, which returns the best ARIMA model according to either AIC or BIC values. This model has the advantage of automatically choosing a model that include parameters that make the most sense. ARIMA models has three parameters that you can fit to them, and because we have 159 countries, we wanted the auto.arima() function to automate the process of fitting time series models.
 
-When forecasting the time series model, 
+When forecasting the time series model, there were a lot of choices to make about how much data to use, how much data to display, and what summary measures we wanted to to use to forecast. For example, the data have measurements every month for most of the years from 1900 to 2013. Over that time span, there are possibly $113 \times 12=1356$ possible measurements to make for each measurement location (i.e. a country can have upwards of 200 possible measurement cities), so displaying all those possible data points in a time series plot, got really dense, really fast, and often times looked like noise with no signal. 
+
+To deal with the question of display, we chose to take the average temperature of each country across measurement sites, for each day-time object that we have in the dataset. So for Afghanistan, which has cities Baglan, Gardez, Gazni, Herat,Jalalabad, Kabul, Qandahar, and Qunduz, we took the average of those measurements for Januaray 1st, 1900, February 1st 1900, and so on and so forth up until the last time point in the dataset. We then fit the ARIMA model to these "national average" temperature measurements. However, that still resulted in a lot of points in the time series plot, so we chose for the sake of visualization to only plot the national averages since 2008.
+
+One of the big questions of climate change is how to forecast the way that temperatures will chang over time
+
+A potential area for further study would to include a covariate such as global greenhouse gas output. This would likely give us a better forecast and model so that we could get less variance on our estimates, and increase precision of our forecasts.
 
 ### Big Data Application
 
