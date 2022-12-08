@@ -5,6 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(table1)
 ```
 
 From rubric: The report is clearly written and sufficiently introduces the dataset of choice, the question of interest, the approach taken, and the results.
@@ -32,6 +33,14 @@ env_data <- read.csv("GlobalLandTemperaturesByCity.csv") %>%
 head(env_data)
 dim(env_data)
 ```
+
+DOES A TABLE 1 MAKE SENSE HERE?? I think we could take some randomly sampled countries?
+
+```{r}
+smallNumObs = env_data[which(env_data$Country %in% sample(unique(env_data$Country), 10, replace = FALSE)),]
+```
+
+
 
 # Research Aim
 
