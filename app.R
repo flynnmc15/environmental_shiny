@@ -239,23 +239,6 @@ server <- function(input, output, session) {
     )
     
   })
-  
-  observeEvent(input$forecast_choice, {
-  if(input$lowess_line == 0 & input$city_color == 0) {
-    if(input$forecast_choice == 1) {
-      return()
-    } else {
-      return()
-    }
-  } else {
-    observeEvent()
-    if(input$forecast_choice == 1) {
-      return()
-    } else {
-      return()
-    }
-   }
-  })
 
   
   ###############################################################Country Plots###############################################################
