@@ -77,7 +77,7 @@ When handling 'Big Data', computational efficiency is key for faster loading tim
 
 Additionally, for visualizing such large data, we made choices to reduce the burden on the user, such as including all data points in a forecast model, but not displaying all points. That tends to get very hard to discern trend over time.
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, cache = TRUE}
 library(microbenchmark)
 
 benchmark <- microbenchmark(
