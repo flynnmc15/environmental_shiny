@@ -38,9 +38,9 @@ Below are tables with randomly sampled countries in our dataset. We stratify by 
 
 ```{r, warning=FALSE}
 smallNumObs = env_data[which(env_data$Country == "Bangladesh"),]
-table1(~year + AverageTemperature  |City, data = smallNumObs)
+t1kable(as.data.frame(table1(~year + AverageTemperature  |City, data = smallNumObs)))
 smallNumObs = env_data[which(env_data$Country == "Namibia"),]
-table1(~year + AverageTemperature  |City, data = smallNumObs)
+t1kable(as.data.frame(table1(~year + AverageTemperature  |City, data = smallNumObs)))
 ```
 
 
