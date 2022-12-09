@@ -24,9 +24,9 @@ The data are collected from UC-Berkley’s climate lab, spanning 1750-2013. It i
 library(tidyverse)
 library(data.table)
 setwd("/home/gtiernon/biostat625/project")
-env_data <- fread("GlobalLandTemperaturesByCity.csv", showProgress = F) %>%
-  select(-V1) %>%
-  na.omit()
+env_data <- fread("~/GlobalLandTemperaturesByCity.csv", showProgress = F) %>%
+select(-V1) %>%
+na.omit()
 ```
 
 ```{r}
@@ -37,10 +37,10 @@ dim(env_data)
 Below are tables with randomly sampled countries in our dataset. We stratify by city to give examples of the different numbers of measurement points in our data.
 
 ```{r, warning=FALSE}
-smallNumObs = env_data[which(env_data$Country == "Bangladesh"),]
-t1kable(as.data.frame(table1(~year + AverageTemperature  |City, data = smallNumObs)))
+smallNumObs = env_data[which(env_data$Country == "Croatia"),]
+t1kable((table1(~year + AverageTemperature  |City, data = smallNumObs)))
 smallNumObs = env_data[which(env_data$Country == "Namibia"),]
-t1kable(as.data.frame(table1(~year + AverageTemperature  |City, data = smallNumObs)))
+t1kable((table1(~year + AverageTemperature  |City, data = smallNumObs)))
 ```
 
 
