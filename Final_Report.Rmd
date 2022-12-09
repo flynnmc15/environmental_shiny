@@ -9,6 +9,7 @@ library(table1)
 ```
 
 # Background
+
 Climate change is very prevalent today and affects every inhabited region in the world. Evidence of climate change is shown by rising sea levels, increased extreme weather, and warmer surface and ocean temperatures. Regarding global surface temperatures, NOAA’s 2021 Annual Climate Report states that they increase annually and are projected to continue increasing. Due to the uneven nature of warming, average temperatures will reflect the average global temperature, not the temperature in a specific geographic location. We want to be able to visualize and communicate data that we have gathered to various stakeholders. 
 
 Our final project aims to increase the ease of investigators to access data and statistical methods. We have created an app that allows people to visualize the change in average temperature historically, as well as the predicted temperature changes for that country out 5 years.
@@ -35,8 +36,7 @@ dim(env_data)
 
 Below are tables with randomly sampled countries in our dataset. We stratify by city to give examples of the different numbers of measurement points in our data.
 
-```{r}
-
+```{r, warning=FALSE}
 smallNumObs = env_data[which(env_data$Country == "Bangladesh"),]
 table1(~year + AverageTemperature  |City, data = smallNumObs)
 smallNumObs = env_data[which(env_data$Country == "Namibia"),]
@@ -72,7 +72,7 @@ When handling 'Big Data', computational efficiency is key for faster loading tim
 
 Additionally, for visualizing such large data, we made choices to reduce the burden on the user.
 
-```{r}
+```{r, warning=FALSE}
 library(microbenchmark)
 
 benchmark <- microbenchmark(
